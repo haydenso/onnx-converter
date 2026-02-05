@@ -95,10 +95,26 @@ streamlit run app.py
 
 Then:
 1. Enter a Hugging Face model ID (e.g., `Qwen/Qwen3-0.5B-Instruct`)
-2. Select precision (fp16, fp32, bf16, int4)
+2. Select a conversion preset (or choose Custom for manual configuration)
 3. Select execution provider (cuda, cpu, dml, webgpu)
-4. Configure advanced options (optional)
+4. Configure advanced options (optional, when using Custom preset)
 5. Click "Start Conversion"
+
+### Available Presets
+
+The app includes 9 presets for common conversion scenarios:
+
+- **FP16 - Recommended (GPU)** - Default, best for most models
+- **FP32 - Full Precision (CPU)** - Maximum quality for CPU inference
+- **BF16 - Brain Float (Gemma/Phi)** - Optimized for Gemma and Phi models
+- **INT4 - 4-bit Quantized** - Smallest size for mobile/edge
+- **INT4 + INT8 Activations** - Balanced quantization
+- **INT4 + BF16 Activations** - Quantized Gemma/Phi optimization
+- **INT4 + FP16 Activations** - Standard GPU quantization
+- **UINT4 - Asymmetric Quantization** - Alternative quantization method
+- **Custom - Manual Configuration** - Full control over all settings
+
+See [PRESETS_GUIDE.md](PRESETS_GUIDE.md) for detailed information about each preset.
 
 ### Command Line Usage (Alternative)
 
@@ -114,6 +130,27 @@ python -m onnxruntime_genai.models.builder \
 ```
 
 ## Conversion Options
+
+### Presets (Recommended)
+
+The app includes preset configurations that automatically set the optimal parameters:
+
+| Preset | Output Format | Best For |
+|--------|--------------|----------|
+| FP16 - Recommended | `model.onnx` (FP16) | Most models, NVIDIA GPUs |
+| FP32 - Full Precision | `model.onnx` (FP32) | CPU inference, maximum accuracy |
+| BF16 - Brain Float | `model.onnx` (BF16) | Gemma, Phi, modern GPUs |
+| INT4 - 4-bit Quantized | `model.onnx` (INT4) | Mobile, edge devices |
+| INT4 + INT8 Activations | `model.onnx` (INT4/INT8) | Balanced quantization |
+| INT4 + BF16 Activations | `model.onnx` (INT4/BF16) | Gemma/Phi with quantization |
+| INT4 + FP16 Activations | `model.onnx` (INT4/FP16) | Standard GPU quantization |
+| UINT4 - Asymmetric | `model.onnx` (UINT4) | Alternative quantization |
+
+**Note**: All presets output to `model.onnx` (or `decoder_model.onnx`). The precision/quantization format is embedded in the file, not in the filename.
+
+### Manual Configuration (Advanced)
+
+When selecting "Custom - Manual Configuration", you can configure:
 
 ### Precision
 - **fp16**: Half precision (recommended for most GPUs)

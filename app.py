@@ -526,14 +526,122 @@ def main():
         # Conversion options
         st.write("### Conversion Options")
         
+        # Preset configurations
+        PRESETS = {
+            "FP16 - Recommended (GPU)": {
+                "precision": "fp16",
+                "description": "Half precision - best balance of size and quality for GPUs",
+                "int4_block_size": 32,
+                "int4_is_symmetric": True,
+                "int4_accuracy_level": 4,
+                "best_for": "Most models, NVIDIA GPUs, general use"
+            },
+            "FP32 - Full Precision (CPU)": {
+                "precision": "fp32",
+                "description": "Full precision - highest quality, larger size, CPU-friendly",
+                "int4_block_size": 32,
+                "int4_is_symmetric": True,
+                "int4_accuracy_level": 4,
+                "best_for": "CPU inference, maximum accuracy"
+            },
+            "BF16 - Brain Float (Gemma/Phi)": {
+                "precision": "bf16",
+                "description": "BFloat16 - recommended for Gemma and Phi models",
+                "int4_block_size": 32,
+                "int4_is_symmetric": True,
+                "int4_accuracy_level": 4,
+                "best_for": "Gemma, Phi, modern GPUs (A100, H100)"
+            },
+            "INT4 - 4-bit Quantized": {
+                "precision": "int4",
+                "description": "4-bit quantization - smallest size, good for edge/mobile",
+                "int4_block_size": 32,
+                "int4_is_symmetric": True,
+                "int4_accuracy_level": 4,
+                "best_for": "Mobile, edge devices, low memory"
+            },
+            "INT4 + INT8 Activations": {
+                "precision": "int4",
+                "description": "4-bit weights with INT8 activations for better accuracy",
+                "int4_block_size": 32,
+                "int4_is_symmetric": True,
+                "int4_accuracy_level": 4,
+                "best_for": "Balanced quantization, good accuracy"
+            },
+            "INT4 + BF16 Activations": {
+                "precision": "int4",
+                "description": "4-bit weights with BF16 activations - Gemma optimized",
+                "int4_block_size": 32,
+                "int4_is_symmetric": True,
+                "int4_accuracy_level": 3,
+                "best_for": "Gemma models with quantization"
+            },
+            "INT4 + FP16 Activations": {
+                "precision": "int4",
+                "description": "4-bit weights with FP16 activations",
+                "int4_block_size": 32,
+                "int4_is_symmetric": True,
+                "int4_accuracy_level": 2,
+                "best_for": "Standard quantization, GPU inference"
+            },
+            "UINT4 - Asymmetric Quantization": {
+                "precision": "int4",
+                "description": "Unsigned 4-bit asymmetric quantization",
+                "int4_block_size": 32,
+                "int4_is_symmetric": False,
+                "int4_accuracy_level": 4,
+                "best_for": "Alternative quantization method"
+            },
+            "Custom - Manual Configuration": {
+                "precision": "fp16",
+                "description": "Configure all settings manually",
+                "int4_block_size": 32,
+                "int4_is_symmetric": True,
+                "int4_accuracy_level": 4,
+                "best_for": "Advanced users, specific requirements"
+            },
+        }
+        
+        # Preset selector
+        preset_choice = st.selectbox(
+            "Conversion Preset",
+            options=list(PRESETS.keys()),
+            index=0,
+            help="Select a preset configuration or choose Custom to configure manually"
+        )
+        
+        # Show preset description
+        if preset_choice != "Custom - Manual Configuration":
+            st.info(f"ℹ️ {PRESETS[preset_choice]['description']}")
+            st.caption(f"**Best for:** {PRESETS[preset_choice]['best_for']}")
+            
+            # Show expected output filename based on preset
+            output_filename_map = {
+                "FP16 - Recommended (GPU)": "model.onnx (FP16)",
+                "FP32 - Full Precision (CPU)": "model.onnx (FP32)",
+                "BF16 - Brain Float (Gemma/Phi)": "model.onnx (BF16)",
+                "INT4 - 4-bit Quantized": "model.onnx (INT4 quantized)",
+                "INT4 + INT8 Activations": "model.onnx (INT4/INT8)",
+                "INT4 + BF16 Activations": "model.onnx (INT4/BF16)",
+                "INT4 + FP16 Activations": "model.onnx (INT4/FP16)",
+                "UINT4 - Asymmetric Quantization": "model.onnx (UINT4)",
+            }
+            expected_output = output_filename_map.get(preset_choice, "model.onnx")
+            st.caption(f"📄 Expected output: `{expected_output}`")
+        
+        # Apply preset defaults
+        preset_config = PRESETS[preset_choice]
+        is_custom = preset_choice == "Custom - Manual Configuration"
+        
         col1, col2 = st.columns(2)
         
         with col1:
             precision = st.selectbox(
                 "Precision",
                 options=["fp16", "fp32", "bf16", "int4"],
-                index=0,
-                help="Model precision. fp16 is recommended for most cases. int4 for quantized models."
+                index=["fp16", "fp32", "bf16", "int4"].index(preset_config["precision"]),
+                help="Model precision. fp16 is recommended for most cases. int4 for quantized models.",
+                disabled=not is_custom
             )
         
         with col2:
@@ -545,7 +653,7 @@ def main():
             )
 
         # Advanced options
-        with st.expander("Advanced Options"):
+        with st.expander("Advanced Options" + (" (Locked - using preset)" if not is_custom else "")):
             st.write("Configure additional conversion options:")
             
             # INT4 quantization options (only show if precision is int4)
@@ -553,21 +661,24 @@ def main():
                 int4_block_size = st.selectbox(
                     "INT4 Block Size",
                     options=[16, 32, 64, 128, 256],
-                    index=1,  # Default to 32
-                    help="Block size for INT4 quantization"
+                    index=[16, 32, 64, 128, 256].index(preset_config["int4_block_size"]),
+                    help="Block size for INT4 quantization",
+                    disabled=not is_custom
                 )
                 
                 int4_is_symmetric = st.checkbox(
                     "INT4 Symmetric Quantization",
-                    value=True,
-                    help="Use symmetric quantization (int4) vs asymmetric (uint4)"
+                    value=preset_config["int4_is_symmetric"],
+                    help="Use symmetric quantization (int4) vs asymmetric (uint4)",
+                    disabled=not is_custom
                 )
                 
                 int4_accuracy_level = st.selectbox(
                     "INT4 Accuracy Level",
                     options=[0, 1, 2, 3, 4],
-                    index=4,  # Default to 4 (int8)
-                    help="Minimum accuracy level for activation. 4=int8, 3=bf16, 2=fp16, 1=fp32, 0=no constraint"
+                    index=preset_config["int4_accuracy_level"],
+                    help="Minimum accuracy level for activation. 4=int8, 3=bf16, 2=fp16, 1=fp32, 0=no constraint",
+                    disabled=not is_custom
                 )
             
             # General options
