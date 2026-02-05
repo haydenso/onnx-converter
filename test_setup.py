@@ -28,30 +28,32 @@ def test_imports():
             print(f"  ✗ {display_name} - NOT INSTALLED")
             failed.append(display_name)
     
-    # Test ONNX Runtime GenAI
+    # Test ONNX Runtime GenAI and its C-extension package `onnx_ir` which commonly fails to import
     try:
-        import importlib.util
-        spec = importlib.util.find_spec("onnxruntime_genai")
-        if spec is not None:
-            print(f"  ✓ ONNX Runtime GenAI")
-            
-            # Try to import the builder module
+        try:
+            import onnx_ir  # this is a compiled module inside onnxruntime-genai
+            print("  ✓ onnx_ir (compiled GenAI runtime) imported")
+        except Exception:
+            print("  ✗ onnx_ir - NOT IMPORTABLE")
+            # Try the pure-python package wrapper as a secondary check
             try:
-                from onnxruntime_genai.models import builder
-                print(f"  ✓ ONNX Runtime GenAI Builder")
-                
-                # Check if create_model function exists
-                if hasattr(builder, 'create_model'):
-                    print(f"  ✓ create_model function found")
+                import importlib.util
+                spec = importlib.util.find_spec("onnxruntime_genai")
+                if spec is not None:
+                    print("  ✓ onnxruntime_genai Python package found")
+                    from onnxruntime_genai.models import builder
+                    print("  ✓ ONNX Runtime GenAI Builder imported")
+                    if hasattr(builder, 'create_model'):
+                        print("  ✓ create_model function found")
+                    else:
+                        print("  ✗ create_model function NOT found")
+                        failed.append("create_model function")
                 else:
-                    print(f"  ✗ create_model function NOT found")
-                    failed.append("create_model function")
+                    print("  ✗ onnxruntime_genai - NOT INSTALLED")
+                    failed.append("ONNX Runtime GenAI")
             except ImportError as e:
                 print(f"  ✗ ONNX Runtime GenAI Builder - {e}")
                 failed.append("ONNX Runtime GenAI Builder")
-        else:
-            print(f"  ✗ ONNX Runtime GenAI - NOT INSTALLED")
-            failed.append("ONNX Runtime GenAI")
     except Exception as e:
         print(f"  ✗ ONNX Runtime GenAI - Error: {e}")
         failed.append("ONNX Runtime GenAI")
