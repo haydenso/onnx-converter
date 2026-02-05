@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-ENV PORT=7860
+ENV PORT=8501
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
