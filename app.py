@@ -368,7 +368,7 @@ class ModelConverter:
     # README Generation Methods
     # ============================================================================
 
-    def generate_readme(self, input_model_id: str, precision: str, execution_provider: str) -> str:
+    def generate_readme(self, input_model_id: str, precision: str, execution_provider: str, output_model_id: Optional[str] = None) -> str:
         """Generate an enhanced README for the ONNX model.
 
         This method creates a README that:
@@ -438,6 +438,12 @@ class ModelConverter:
         readme_sections.append("import onnxruntime_genai as og")
         readme_sections.append("")
         readme_sections.append("# Load the model")
+        # If an explicit output_model_id was not provided, derive a sensible default
+        if not output_model_id:
+            model_name = input_model_id.split("/")[-1]
+            derived_owner = self.config.hf_username
+            output_model_id = f"{derived_owner}/{model_name}-ONNX"
+
         readme_sections.append(f'model = og.Model("{output_model_id}")')
         readme_sections.append("tokenizer = og.Tokenizer(model)")
         readme_sections.append("")
@@ -660,10 +666,12 @@ def main():
 
         # Step 2: Generate README
         with st.spinner("Generating README..."):
+            # Pass the final output_model_id so the README references the correct repo
             readme_content = converter.generate_readme(
                 input_model_id=input_model_id,
                 precision=precision,
                 execution_provider=execution_provider,
+                output_model_id=output_model_id,
             )
             
             # Write README to output directory
@@ -671,6 +679,34 @@ def main():
             readme_path.write_text(readme_content, encoding="utf-8")
             
             st.success("✅ README generated!")
+
+            # Prepare a downloadable zip of the ONNX model in case upload fails
+            zip_path = f"{temp_output_dir}.zip"
+            try:
+                # Remove any existing zip to avoid stale files
+                if os.path.exists(zip_path):
+                    os.remove(zip_path)
+
+                # Create zip archive of the output directory
+                shutil.make_archive(base_name=temp_output_dir, format="zip", root_dir=temp_output_dir)
+
+                # Offer a download button (reads zip into memory briefly)
+                try:
+                    with open(zip_path, "rb") as zf:
+                        zip_bytes = zf.read()
+                    st.download_button(
+                        label="Download ONNX model (zip)",
+                        data=zip_bytes,
+                        file_name=f"{model_name}-onnx.zip",
+                        mime="application/zip",
+                    )
+                except Exception:
+                    logger.exception("Failed to read zip for download button")
+                    st.warning("Download unavailable: could not prepare archive for download.")
+
+            except Exception as e:
+                logger.exception("Failed to create download archive")
+                st.warning(f"Could not create download package: {e}")
 
         # Step 3: Upload the converted model to Hugging Face
         with st.spinner("Uploading model to Hugging Face..."):
