@@ -1,0 +1,7 @@
+huggingface_hub==0.35.3
+streamlit==1.50.0
+PyYAML==6.0.2
+torch==2.5.1
+transformers>=4.40.0
+onnx>=1.16.0
+onnxruntime-genai
