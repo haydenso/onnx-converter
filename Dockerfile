@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir -U pip \
 
 RUN pip install numpy
 RUN pip install --pre onnxruntime-genai
+RUN pip install onnx-ir
 
 COPY . .
 
