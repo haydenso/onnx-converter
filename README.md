@@ -1,3 +1,16 @@
+---
+title: Convert to ONNX
+emoji: ☯
+colorFrom: indigo
+colorTo: yellow
+sdk: docker
+app_port: 8501
+pinned: true
+license: apache-2.0
+short_description: Convert a Hugging Face model to ONNX format
+---
+
+
 # ONNX Converter - ONNX Runtime GenAI Version
 
 Improved v2 based on https://github.com/huggingface/transformers.js/issues/1361
