@@ -17,6 +17,9 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -U pip \
     && pip install --no-cache-dir -r requirements.txt
 
+RUN pip install numpy
+RUN pip install --pre onnxruntime-genai
+
 COPY . .
 
 EXPOSE $PORT
